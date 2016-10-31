@@ -585,6 +585,23 @@ class Organization(BaseAccount):
             json = self._json(self._get(url), 200)
         return self._instance_or_null(Team, json)
 
+    @requires_auth
+    def membership_for(self, username, state=None, number=-1, etag=None):
+        """
+        Retrieve the membership information for the user.
+        See: https://git.io/vXtNL
+
+        :param str username: (required), name of the user
+
+        :returns:
+          :class:`OrganizationMembership <github3.orgs.OrganizationMembership>`
+        """
+        params = None
+
+        url = self._build_url('memberships', username, base_url=self._api)
+        json = self._json(self._get(url), 200)
+        return self._instance_or_null(OrganizationMembership, json)
+
 
 class Membership(GitHubCore):
 
@@ -617,3 +634,25 @@ class Membership(GitHubCore):
             self._update_attributes(json)
             return True
         return False
+
+
+class OrganizationMembership(GitHubCore):
+    """
+    Information about Organization memberships.
+
+    For membership roles see: https://git.io/vXtNL
+
+    """
+
+    def _repr(self):
+        return '<OrganziationMembership [{0}]>'.format(self.organization)
+
+    def _update_attributes(self, membership):
+        self._api = membership.get('url')
+        self.role = membership.get('role', '')
+        self.state = membership.get('state', '')
+        self.organization_url = membership.get('organization_url')
+        self.organization = Organization(membership.get('organization'), self)
+        self.user = User(membership.get('user'), self)
+        self.active = self.state.lower() == 'active'
+        self.pending = self.state.lower() == 'pending'
